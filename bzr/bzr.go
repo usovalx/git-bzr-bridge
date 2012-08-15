@@ -32,14 +32,14 @@ func TestInstall() bool {
 
 	// check if bzr is runnable
 	log.Info("Testing whether Bazaar is runnnable")
-	if _, err := Output("help"); err != nil {
+	if err := bzr("help").Run(); err != nil {
 		log.Error("Bazaar is not runnable: ", err)
 		return false
 	}
 
 	// if fast-export is available
 	log.Info("Testing whether Bazaar has fast-export plugin")
-	if out, err := Output("fast-export", "--usage"); err != nil {
+	if out, err := bzr("fast-export", "--usage").Output(); err != nil {
 		log.Error("fast-export plugin isn't available: ", err)
 		return false
 	} else {
@@ -58,12 +58,14 @@ func TestInstall() bool {
 	return true
 }
 
-// Run bzr and grab its output
-func Output(bzrArgs ...string) ([]byte, error) {
-	args := append(conf.BzrCommand, bzrArgs...)
-	log.Debugf("Running %q", strings.Join(args, " "))
-	cmd := exec.Command(args[0], args[1:]...)
+// Initialize bzr repo at the given path
+func InitRepo(path string) error {
+	return bzr("init-repo", "--no-trees", path).Run()
+}
 
-	out, err := cmd.Output()
-	return out, err
+// Prepare exec.Cmd to run bzr with specified arguments
+func bzr(args ...string) *exec.Cmd {
+	a := append(conf.BzrCommand, args...)
+	log.Debugf("Running %q", strings.Join(a, " "))
+	return exec.Command(a[0], a[1:]...)
 }

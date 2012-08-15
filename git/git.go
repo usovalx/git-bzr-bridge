@@ -31,13 +31,13 @@ func TestInstall() bool {
 
 	// check if bzr is runnable
 	log.Info("Testing whether Git is runnnable")
-	if _, err := Output("help"); err != nil {
+	if err := git("help").Run(); err != nil {
 		log.Error("Git is not runnable: ", err)
 		return false
 	}
 
 	log.Info("Testing whether Git has fast-export")
-	if out, err := Output("fast-export", "--help"); err != nil {
+	if out, err := git("fast-export", "--help").Output(); err != nil {
 		log.Error("fast-export isn't working: ", err)
 		return false
 	} else {
@@ -55,12 +55,14 @@ func TestInstall() bool {
 	return true
 }
 
-// Run bzr and grab its output
-func Output(gitArgs ...string) ([]byte, error) {
-	args := append(conf.GitCommand, gitArgs...)
-	log.Debugf("Running %q", strings.Join(args, " "))
-	cmd := exec.Command(args[0], args[1:]...)
+// Initialize git repo at the given path
+func InitRepo(path string) error {
+	return git("init", "--bare", path).Run()
+}
 
-	out, err := cmd.Output()
-	return out, err
+// Prepare exec.Cmd to run git with specified arguments
+func git(args ...string) *exec.Cmd {
+	a := append(conf.GitCommand, args...)
+	log.Debugf("Running %q", strings.Join(a, " "))
+	return exec.Command(a[0], a[1:]...)
 }
