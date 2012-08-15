@@ -18,7 +18,7 @@ func prep() {
 
 func TestNormalLevels(t *testing.T) {
 	for minLevel := DEBUG; minLevel <= NONE; minLevel++ {
-		for level := DEBUG; level < FATAL; level++ {
+		for level := DEBUG; level < PANIC; level++ {
 			prep()
 			l := New("testLogger")
 			MinLogLevel = minLevel
@@ -45,21 +45,20 @@ func TestNormalLevels(t *testing.T) {
 
 func TestFailPanicLevels(t *testing.T) {
 	for minLevel := DEBUG; minLevel <= NONE; minLevel++ {
-		for level := FATAL; level <= PANIC; level++ {
-			prep()
-			l := New("testLogger")
-			MinLogLevel = minLevel
-			l.log(level, 1, "testMessage")
-			str := string(stderr.Bytes())
+		prep()
+		level := PANIC
+		l := New("testLogger")
+		MinLogLevel = minLevel
+		l.log(level, 1, "testMessage")
+		str := string(stderr.Bytes())
 
-			if !(strings.Contains(str, "testLogger") && strings.Contains(str, "testMessage")) {
-				t.Errorf("Message not logged at level = %s and minLevel = %s", level, minLevel)
-			}
+		if !(strings.Contains(str, "testLogger") && strings.Contains(str, "testMessage")) {
+			t.Errorf("Message not logged at level = %s and minLevel = %s", level, minLevel)
+		}
 
-			if string(stdout.Bytes()) != "" {
-				t.Errorf("Unexpeded message in stdout at level = %s and minLevel = %s",
-					level, minLevel)
-			}
+		if string(stdout.Bytes()) != "" {
+			t.Errorf("Unexpeded message in stdout at level = %s and minLevel = %s",
+				level, minLevel)
 		}
 	}
 }
