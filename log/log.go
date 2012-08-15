@@ -19,7 +19,6 @@ const (
 	DEBUG logLevel = iota
 	INFO
 	ERROR
-	FATAL
 	PANIC
 	NONE
 )
@@ -28,7 +27,6 @@ var levels = [...]string{
 	"DEBUG",
 	"INFO",
 	"ERROR",
-	"FATAL",
 	"PANIC",
 	"NONE",
 }
@@ -36,11 +34,11 @@ var levels = [...]string{
 func (l logLevel) String() string { return levels[l] }
 
 // Only log messages with level equal or higher to the specified one will be shown.
-// FATAL and PANIC messages are handled separately, and will be shown on the 
+// PANIC messages are handled separately, and will be shown on the 
 // stderr even if MinLogLevel is set to NONE
 var MinLogLevel = INFO
 
-// actual Loggers -- normal one and the one for FATAL/PANIC messages
+// actual Loggers -- normal one and the one for PANIC messages
 var std = log.New(os.Stdout, "", log.LstdFlags)
 var err = log.New(os.Stderr, "", log.LstdFlags)
 
@@ -99,27 +97,6 @@ func (l *Logger) Errorf(format string, v ...interface{}) {
 	l.log(ERROR, 2, fmt.Sprintf(format, v...))
 }
 
-// Print FATAL level log line. Arguments are handled in the manner of fmt.Print
-// After log message is written, it calls os.Exit(1)
-func (l *Logger) Fatal(v ...interface{}) {
-	l.log(FATAL, 2, fmt.Sprint(v...))
-	os.Exit(1)
-}
-
-// Print FATAL level log line. Arguments are handled in the manner of fmt.Println
-// After log message is written, it calls os.Exit(1)
-func (l *Logger) Fatalln(v ...interface{}) {
-	l.log(FATAL, 2, fmt.Sprintln(v...))
-	os.Exit(1)
-}
-
-// Print FATAL level log line. Arguments are handled in the manner of fmt.Printf
-// After log message is written, it calls os.Exit(1)
-func (l *Logger) Fatalf(format string, v ...interface{}) {
-	l.log(FATAL, 2, fmt.Sprintf(format, v...))
-	os.Exit(1)
-}
-
 // Print PANIC level log line. Arguments are handled in the manner of fmt.Print
 // After log message is written it calls panic()
 func (l *Logger) Panic(v ...interface{}) {
@@ -146,9 +123,9 @@ func (l *Logger) Panicf(format string, v ...interface{}) {
 
 // Write log message
 func (l *Logger) log(level logLevel, calldepth int, msg string) {
-	if level >= MinLogLevel && level < FATAL {
+	if level >= MinLogLevel && level < PANIC {
 		std.Printf("- %-5s - %s: %s", level, l.name, msg)
-	} else if level >= FATAL {
+	} else if level >= PANIC {
 		// get file name & line number of where log message was produced
 		_, file, line, ok := runtime.Caller(calldepth)
 		if ok {

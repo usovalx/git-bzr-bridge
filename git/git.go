@@ -21,40 +21,44 @@ var log = l.New("git")
 // Set config options for the package
 func SetConfig(c Config) {
 	if len(c.GitCommand) < 1 {
-		log.Fatalf("Invalid command line for git: too short: %#v", c.GitCommand)
+		log.Panicf("Invalid command line for git: too short: %#v", c.GitCommand)
 	}
 }
 
 // Test whether git is runnable with current config
-func TestInstall() {
+func TestInstall() bool {
 	log.Debugf("Current git config: %+v", conf)
 
 	// check if bzr is runnable
 	log.Info("Testing whether Git is runnnable")
 	if _, err := Output("help"); err != nil {
-		log.Fatal("Git is not runnable: ", err)
-		return
+		log.Error("Git is not runnable: ", err)
+		return false
 	}
 
 	log.Info("Testing whether Git has fast-export")
 	if out, err := Output("fast-export", "--help"); err != nil {
-		log.Fatal("fast-export isn't working: ", err)
+		log.Error("fast-export isn't working: ", err)
+		return false
 	} else {
 		req := []string{"-M", "-C", "--export-marks", "--import-marks"}
 		usage := string(out)
 		for _, s := range req {
 			if !strings.Contains(usage, s) {
-				log.Fatalf("fast-export doesn't support %q", s)
+				log.Errorf("fast-export doesn't support %q", s)
+				return false
 			}
 		}
 	}
 
 	log.Info("Git installation seems ok")
+	return true
 }
 
 // Run bzr and grab its output
 func Output(gitArgs ...string) ([]byte, error) {
 	args := append(conf.GitCommand, gitArgs...)
+	log.Debugf("Running %q", strings.Join(args, " "))
 	cmd := exec.Command(args[0], args[1:]...)
 
 	out, err := cmd.Output()
