@@ -2,6 +2,10 @@ package git
 
 import (
 	l "gitbridge/log"
+
+	"fmt"
+	"io"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -57,12 +61,40 @@ func TestInstall() bool {
 
 // Initialize git repo at the given path
 func InitRepo(path string) error {
-	return git("init", "--bare", path).Run()
+	return run(git("init", "--bare", path))
+}
+
+func Import(data io.Reader, inMarks, outMarks string) error {
+	flags := []string{
+		"fast-import", "--force",
+		"--import-marks=" + inMarks,
+		"--export-marks=" + outMarks}
+	if l.MinLogLevel != l.DEBUG {
+		flags = append(flags, "--quiet")
+	}
+	c := git(flags...)
+	c.Stdin = data
+	c.Stdout = os.Stdout
+	return run(c)
+}
+
+func RenameBranch(to, from string) error {
+	return run(git("branch", "-M", from, to))
 }
 
 // Prepare exec.Cmd to run git with specified arguments
 func git(args ...string) *exec.Cmd {
 	a := append(conf.GitCommand, args...)
 	log.Debugf("Running %q", strings.Join(a, " "))
-	return exec.Command(a[0], a[1:]...)
+	c := exec.Command(a[0], a[1:]...)
+	c.Stderr = os.Stderr
+	return c
+}
+
+func run(c *exec.Cmd) error {
+	r := c.Run()
+	if r != nil {
+		return fmt.Errorf("%s %s: %s", c.Path, c.Args[0], r)
+	}
+	return nil
 }

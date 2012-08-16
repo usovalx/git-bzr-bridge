@@ -6,6 +6,7 @@ import (
 
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 )
 
@@ -35,7 +36,14 @@ func initCmd(args []string) {
 	log.Debug("Initializing git repo")
 	must(git.InitRepo("."))
 	log.Debug("Initializing bzr repo")
-	must(bzr.InitRepo("bzr"))
+	must(bzr.InitRepo(bzrRepo))
+	log.Debug("Creating branch config")
+	must(ioutil.WriteFile(branchConfigName, []byte("[]"), 0666))
+	log.Debug("Creating marks files")
+	must(ioutil.WriteFile(bzrMarks, []byte{}, 0666))
+	must(ioutil.WriteFile(gitMarks, []byte{}, 0666))
+	log.Debug("Creating temp dir")
+	must(os.Mkdir(tmpDir, 0777))
 
 	os.Exit(0)
 }

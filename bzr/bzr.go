@@ -2,6 +2,10 @@ package bzr
 
 import (
 	l "gitbridge/log"
+
+	"fmt"
+	"io"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -60,12 +64,42 @@ func TestInstall() bool {
 
 // Initialize bzr repo at the given path
 func InitRepo(path string) error {
-	return bzr("init-repo", "--no-trees", path).Run()
+	return run(bzr("init-repo", "--no-trees", path))
+}
+
+func Clone(url, path string) error {
+	return run(bzr("branch", "--no-tree", url, path))
+}
+
+func Export(path, gitName string, dataSink io.Writer, inMarks, outMarks string) error {
+	flags := []string{
+		"fast-export",
+		"--plain", "--no-tags",
+		"--import-marks", inMarks,
+		"--export-marks", outMarks,
+		"--git-branch", gitName,
+		path, "-"}
+	if l.MinLogLevel != l.DEBUG {
+		flags = append(flags, "--quiet")
+	}
+	c := bzr(flags...)
+	c.Stdout = dataSink
+	return run(c)
 }
 
 // Prepare exec.Cmd to run bzr with specified arguments
 func bzr(args ...string) *exec.Cmd {
 	a := append(conf.BzrCommand, args...)
 	log.Debugf("Running %q", strings.Join(a, " "))
-	return exec.Command(a[0], a[1:]...)
+	c := exec.Command(a[0], a[1:]...)
+	c.Stderr = os.Stderr
+	return c
+}
+
+func run(c *exec.Cmd) error {
+	r := c.Run()
+	if r != nil {
+		return fmt.Errorf("%s %s: %s", c.Path, c.Args[0], r)
+	}
+	return nil
 }
