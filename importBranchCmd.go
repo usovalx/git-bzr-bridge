@@ -69,7 +69,6 @@ func importCmd(args []string) {
 	defer os.Remove(tmpGitMarks.Name())
 	tmpGitMarks.Close()
 
-
 	log.Info("Cloning bzr branch")
 	defer os.RemoveAll(tmpBzrBranch)
 	must(bzr.Clone(url, tmpBzrBranch))
@@ -156,4 +155,3 @@ func (w *countWriter) Write(b []byte) (int, error) {
 	*w += countWriter(n)
 	return n, nil
 }
-

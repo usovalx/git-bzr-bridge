@@ -12,8 +12,8 @@ import (
 	"math/rand"
 	"os"
 	"sort"
-	"strings"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -48,7 +48,7 @@ type branchConfig struct {
 }
 
 type marks struct {
-	byRev map[string]int
+	byRev  map[string]int
 	byMark map[int]string
 }
 
@@ -234,4 +234,3 @@ func loadMarks(path string) (*marks, error) {
 	}
 	panic("unreachable")
 }
-
