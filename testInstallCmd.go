@@ -13,7 +13,6 @@ func testInstallCmd(args []string) {
 	// command-line flags
 	fs := flag.NewFlagSet("test-install", flag.ExitOnError)
 	help := fs.Bool("h", false, "show usage message")
-	fs.SetOutput(os.Stdout)
 	fs.Usage = func() { testInstallUsage(fs) }
 	fs.Parse(args)
 
@@ -36,6 +35,7 @@ func testInstallCmd(args []string) {
 func testInstallUsage(fs *flag.FlagSet) {
 	fmt.Println("usage: gitbridge test-install [-h]")
 	fmt.Println("\nflags:")
+	fs.SetOutput(os.Stdout)
 	fs.PrintDefaults()
 
 	fmt.Print(`

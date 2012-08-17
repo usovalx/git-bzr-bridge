@@ -14,7 +14,6 @@ func initCmd(args []string) {
 	// command-line flags
 	fs := flag.NewFlagSet("init", flag.ExitOnError)
 	help := fs.Bool("h", false, "show usage message")
-	fs.SetOutput(os.Stdout)
 	fs.Usage = func() { initUsage(fs) }
 	fs.Parse(args)
 
@@ -44,13 +43,12 @@ func initCmd(args []string) {
 	must(ioutil.WriteFile(gitMarks, []byte{}, 0666))
 	log.Debug("Creating temp dir")
 	must(os.Mkdir(tmpDir, 0777))
-
-	os.Exit(0)
 }
 
 func initUsage(fs *flag.FlagSet) {
 	fmt.Println("usage: gitbridge init [-h] <path>")
 	fmt.Println("\nflags:")
+	fs.SetOutput(os.Stdout)
 	fs.PrintDefaults()
 
 	fmt.Print(`

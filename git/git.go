@@ -78,8 +78,16 @@ func Import(data io.Reader, inMarks, outMarks string) error {
 	return run(c)
 }
 
-func RenameBranch(to, from string) error {
+func RenameBranch(from, to string) error {
 	return run(git("branch", "-M", from, to))
+}
+
+func RemoveBranch(name string) error {
+	return run(git("branch", "-D", name))
+}
+
+func NewBranch(name, rev string) error {
+	return run(git("branch", name, rev))
 }
 
 // Prepare exec.Cmd to run git with specified arguments

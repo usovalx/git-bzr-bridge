@@ -3,17 +3,21 @@ package main
 import (
 	l "gitbridge/log"
 
+	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"sort"
+	"strings"
+	"strconv"
 	"time"
 )
 
-var log = l.New("gitbridge.main")
+var log = l.New("gitbridge")
 
 // some constants
 const bzrRepo = "bzr"
@@ -43,13 +47,17 @@ type branchConfig struct {
 	byGitName map[string]*branchInfo
 }
 
+type marks struct {
+	byRev map[string]int
+	byMark map[int]string
+}
+
 func main() {
 	// global command-line flags
 	fs := flag.NewFlagSet("gitbridge", flag.ExitOnError)
 	var verbose = fs.Bool("v", false, "more verbose logging")
 	var help = fs.Bool("h", false, "show usage message and options")
 	var wd = fs.String("C", "", "change to this directory before doing anything else")
-	fs.SetOutput(os.Stdout)
 	fs.Usage = func() { showUsage(fs) }
 	fs.Parse(os.Args[1:])
 
@@ -63,7 +71,10 @@ func main() {
 	}
 
 	if *wd != "" {
-		must(os.Chdir(*wd))
+		if err := os.Chdir(*wd); err != nil {
+			log.Error(err)
+			os.Exit(1)
+		}
 	}
 
 	rand.Seed(time.Now().UnixNano())
@@ -71,8 +82,15 @@ func main() {
 	// choose subcommand and run it
 	if fs.NArg() > 0 {
 		if cmd, ok := commands[fs.Arg(0)]; ok {
+			defer func() {
+				if e := recover(); e != nil {
+					os.Exit(1)
+				} else {
+					os.Exit(0)
+				}
+			}()
 			cmd.cmd(fs.Args()[1:])
-			panic("subcommands shouldn't return")
+			os.Exit(0)
 		}
 	}
 
@@ -83,8 +101,8 @@ func main() {
 
 func showUsage(fs *flag.FlagSet) {
 	fmt.Println("usage: gitbridge [flags] <command> [<args>]")
-
 	fmt.Println("\nflags:")
+	fs.SetOutput(os.Stdout)
 	fs.PrintDefaults()
 
 	// get a list of all commands and sort them
@@ -105,11 +123,11 @@ func showUsage(fs *flag.FlagSet) {
 func must(err error) {
 	if err != nil {
 		log.Error(err)
-		os.Exit(1)
+		panic(err)
 	}
 }
 
-func tempGitBranch() string {
+func tempBranchName() string {
 	// FIXME: should it also check that branch doesn't exists yet?
 	return fmt.Sprintf("__bzr_import_%d_%d", os.Getpid(), rand.Uint32())
 }
@@ -182,6 +200,38 @@ func addBranchToConfig(url, bzrName, gitName string) error {
 	return nil
 }
 
-func moveFile(from, to string) error {
-	return os.Rename(from, to)
+func loadMarks(path string) (*marks, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	bf := bufio.NewReader(f)
+
+	m := new(marks)
+	m.byMark = make(map[int]string)
+	m.byRev = make(map[string]int)
+
+	for {
+		line, err := bf.ReadString('\n')
+		s := strings.Split(line, " ")
+		if len(s) == 2 {
+			rev := strings.TrimSpace(s[1])
+			mark, err := strconv.Atoi(s[0][1:])
+			if err != nil {
+				log.Errorf("%s: invalid mark: %s", path, line)
+				continue
+			}
+			m.byRev[rev] = mark
+			m.byMark[mark] = rev
+		}
+		if err == io.EOF {
+			return m, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+	panic("unreachable")
 }
+

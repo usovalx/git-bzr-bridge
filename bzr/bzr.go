@@ -87,6 +87,19 @@ func Export(path, gitName string, dataSink io.Writer, inMarks, outMarks string) 
 	return run(c)
 }
 
+func Tip(path string) (string, error) {
+	if out, err := bzr("revision-info", "-d", path).Output(); err != nil {
+		return "", err
+	} else {
+		s := strings.Split(string(out), " ")
+		if len(s) != 2 {
+			return "", fmt.Errorf("bzr revision-info: invalid output %q", string(out))
+		}
+		return strings.TrimSpace(string(s[1])), nil
+	}
+	panic("unreachable")
+}
+
 // Prepare exec.Cmd to run bzr with specified arguments
 func bzr(args ...string) *exec.Cmd {
 	a := append(conf.BzrCommand, args...)

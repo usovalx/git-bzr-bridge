@@ -1,0 +1,4 @@
+- Speed up large exports:
+  - custom multi-threaded and properly cached output stream?
+  - use native gzip/zlib instead of go implementation?
+  - another faster compression libs (lzo?)
