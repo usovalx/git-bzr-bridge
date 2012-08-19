@@ -83,9 +83,7 @@ func importCmd(args []string) {
 	// if all revisions of the branch are already in the repo,
 	// fast-export will produce empty export and we won't
 	// be able to import the branch via normal means
-	empty_export := (0 == *cw)
-
-	if empty_export {
+	if cw.Empty() {
 		log.Info("Empty export. Creating git branch using marks")
 		rev, err := bzr.Tip(tmpBzrBranch)
 		must(err)
@@ -131,7 +129,7 @@ func importCmd(args []string) {
 	must(os.Rename(tmpBzrBranch, bzrBranch))
 	must(git.RenameBranch(tmpGitBranch, gitBranch))
 	must(addBranchToConfig(url, bzrBranch, gitBranch))
-	if !empty_export {
+	if !cw.Empty() {
 		must(os.Rename(tmpBzrMarks.Name(), bzrMarks))
 		must(os.Rename(tmpGitMarks.Name(), gitMarks))
 	}
@@ -154,4 +152,8 @@ func (w *countWriter) Write(b []byte) (int, error) {
 	n := len(b)
 	*w += countWriter(n)
 	return n, nil
+}
+
+func (w *countWriter) Empty() bool {
+	return *w == 0
 }
