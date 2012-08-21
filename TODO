@@ -2,3 +2,7 @@
   - custom multi-threaded and properly cached output stream?
   - use native gzip/zlib instead of go implementation?
   - another faster compression libs (lzo?)
+
+- Alternative -- don't save exported data at all
+  Just pipe it between bzr fast-export and git-fast-import directly
+  or use an in-memory buffer of a few megs

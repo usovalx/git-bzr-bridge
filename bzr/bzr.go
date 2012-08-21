@@ -1,7 +1,7 @@
 package bzr
 
 import (
-	l "gitbridge/log"
+	l "github.com/usovalx/git-bzr-bridge/log"
 
 	"fmt"
 	"io"

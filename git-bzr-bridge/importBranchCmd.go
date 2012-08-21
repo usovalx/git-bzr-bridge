@@ -1,8 +1,8 @@
 package main
 
 import (
-	"gitbridge/bzr"
-	"gitbridge/git"
+	"github.com/usovalx/git-bzr-bridge/bzr"
+	"github.com/usovalx/git-bzr-bridge/git"
 
 	"compress/gzip"
 	"flag"
@@ -136,7 +136,7 @@ func importCmd(args []string) {
 }
 
 func importUsage(fs *flag.FlagSet) {
-	fmt.Println("usage: gitbridge import [-h] [-g <branch>] <url> <bzr branch>")
+	fmt.Println("usage: git-bzr-bridge import [-h] [-g <branch>] <url> <bzr branch>")
 	fmt.Println("\nflags:")
 	fs.SetOutput(os.Stdout)
 	fs.PrintDefaults()

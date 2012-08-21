@@ -1,8 +1,8 @@
 package main
 
 import (
-	"gitbridge/bzr"
-	"gitbridge/git"
+	"github.com/usovalx/git-bzr-bridge/bzr"
+	"github.com/usovalx/git-bzr-bridge/git"
 
 	"flag"
 	"fmt"
@@ -46,7 +46,7 @@ func initCmd(args []string) {
 }
 
 func initUsage(fs *flag.FlagSet) {
-	fmt.Println("usage: gitbridge init [-h] <path>")
+	fmt.Println("usage: git-bzr-bridge init [-h] <path>")
 	fmt.Println("\nflags:")
 	fs.SetOutput(os.Stdout)
 	fs.PrintDefaults()

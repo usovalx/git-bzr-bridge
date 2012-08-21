@@ -1,7 +1,7 @@
 package main
 
 import (
-	l "gitbridge/log"
+	l "github.com/usovalx/git-bzr-bridge/log"
 
 	"bufio"
 	"encoding/json"
@@ -17,14 +17,14 @@ import (
 	"time"
 )
 
-var log = l.New("gitbridge")
+var log = l.New("git-bzr-bridge")
 
 // some constants
 const bzrRepo = "bzr"
-const branchConfigName = "gitbridge_branches.cfg"
-const bzrMarks = "gitbridge_bzr.marks"
-const gitMarks = "gitbridge_git.marks"
-const tmpDir = "gitbridge_tmp"
+const branchConfigName = "git-bzr-bridge-branches.cfg"
+const bzrMarks = "git-bzr-bridge-bzr.marks"
+const gitMarks = "git-bzr-bridge-git.marks"
+const tmpDir = "git-bzr-bridge-tmp"
 
 type commandInfo struct {
 	cmd         func([]string)
@@ -54,7 +54,7 @@ type marks struct {
 
 func main() {
 	// global command-line flags
-	fs := flag.NewFlagSet("gitbridge", flag.ExitOnError)
+	fs := flag.NewFlagSet("git-bzr-bridge", flag.ExitOnError)
 	var verbose = fs.Bool("v", false, "more verbose logging")
 	var help = fs.Bool("h", false, "show usage message and options")
 	var wd = fs.String("C", "", "change to this directory before doing anything else")
@@ -100,7 +100,7 @@ func main() {
 }
 
 func showUsage(fs *flag.FlagSet) {
-	fmt.Println("usage: gitbridge [flags] <command> [<args>]")
+	fmt.Println("usage: git-bzr-bridge [flags] <command> [<args>]")
 	fmt.Println("\nflags:")
 	fs.SetOutput(os.Stdout)
 	fs.PrintDefaults()
@@ -117,7 +117,7 @@ func showUsage(fs *flag.FlagSet) {
 		fmt.Printf("  %-12s  %s\n", k, commands[k].description)
 	}
 
-	fmt.Println("\nRun 'gitbridge <command> -h' to get usage message for the <command>")
+	fmt.Println("\nRun 'git-bzr-bridge <command> -h' to get usage message for the <command>")
 }
 
 func must(err error) {
