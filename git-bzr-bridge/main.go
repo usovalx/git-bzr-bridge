@@ -33,6 +33,7 @@ type commandInfo struct {
 }
 
 var commands = map[string]commandInfo{
+	"branches":     {branchesCmd, "list branches"},
 	"init":         {initCmd, "create a new repository"},
 	"import":       {importCmd, "import new bzr branch"},
 	"test-install": {testInstallCmd, "basic check of the setup"},
@@ -42,8 +43,10 @@ type branchInfo struct {
 	Url, Bzr, Git string
 }
 
+type branchList []*branchInfo
+
 type branchConfig struct {
-	branches  []*branchInfo
+	branches  branchList
 	byBzrName map[string]*branchInfo
 	byGitName map[string]*branchInfo
 }
@@ -121,7 +124,7 @@ func showUsage(fs *flag.FlagSet) {
 		fmt.Printf("  %-12s  %s\n", k, commands[k].description)
 	}
 
-	fmt.Println("\nRun 'git-bzr-bridge <command> -h' to get usage message for the <command>")
+	fmt.Println("\nRun 'git-bzr-bridge <command> -h' to get usage message for <command>")
 }
 
 func must(err error) {
