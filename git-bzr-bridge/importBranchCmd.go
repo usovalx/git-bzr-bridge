@@ -4,17 +4,13 @@ import (
 	"github.com/usovalx/git-bzr-bridge/bzr"
 	"github.com/usovalx/git-bzr-bridge/git"
 
-	"compress/gzip"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 )
-
-type countWriter uint64
 
 func importCmd(args []string) {
 	// command-line flags
@@ -57,9 +53,6 @@ func importCmd(args []string) {
 	// FIXME: use locks
 
 	// Create all temporary files we will use later
-	tmpData, err := ioutil.TempFile(tmpDir, "bzr_export")
-	must(err)
-	defer os.Remove(tmpData.Name())
 	tmpBzrMarks, err := ioutil.TempFile(tmpDir, "bzr_marks")
 	must(err)
 	defer os.Remove(tmpBzrMarks.Name())
@@ -74,16 +67,21 @@ func importCmd(args []string) {
 	must(bzr.Clone(url, tmpBzrBranch))
 
 	log.Info("Exporting data from bzr")
-	gzw := gzip.NewWriter(tmpData)
-	cw := new(countWriter)
-	must(bzr.Export(tmpBzrBranch, tmpGitBranch,
-		io.MultiWriter(gzw, cw), bzrMarks, tmpBzrMarks.Name()))
-	gzw.Close()
+	defer func() {
+		if e := recover(); e != nil {
+			git.RemoveBranch(tmpGitBranch)
+			panic(e)
+		}
+	}()
+	exportSize, err := RunPipe(
+		bzr.Export(tmpBzrBranch, tmpGitBranch, bzrMarks, tmpBzrMarks.Name()),
+		git.Import(gitMarks, tmpGitMarks.Name()))
+	must(err)
 
 	// if all revisions of the branch are already in the repo,
 	// fast-export will produce empty export and we won't
 	// be able to import the branch via normal means
-	if cw.Empty() {
+	if exportSize == 0 {
 		log.Info("Empty export. Creating git branch using marks")
 		rev, err := bzr.Tip(tmpBzrBranch)
 		must(err)
@@ -99,29 +97,11 @@ func importCmd(args []string) {
 		if !ok {
 			log.Panicf("Can't find mark %d in git marks file", mark)
 		}
-		defer func() {
-			if e := recover(); e != nil {
-				git.RemoveBranch(tmpGitBranch)
-				panic(e)
-			}
-		}()
 		must(git.NewBranch(tmpGitBranch, grev))
-	} else {
-		log.Info("Importing data into git")
-		tmpData.Seek(0, os.SEEK_SET)
-		gzr, err := gzip.NewReader(tmpData)
-		must(err)
-		defer func() {
-			if e := recover(); e != nil {
-				git.RemoveBranch(tmpGitBranch)
-				panic(e)
-			}
-		}()
-		must(git.Import(gzr, gitMarks, tmpGitMarks.Name()))
 	}
 
 	log.Info("Finalising import")
-	// correct ordering of actions is extremely important here
+	// correct ordering of actions is important here
 	// while we can live with stale temporary branches and/or files
 	// and easily clean them up manually later it is extremely
 	// important that we keep marks files in sync.
@@ -129,7 +109,8 @@ func importCmd(args []string) {
 	must(os.Rename(tmpBzrBranch, bzrBranch))
 	must(git.RenameBranch(tmpGitBranch, gitBranch))
 	must(addBranchToConfig(url, bzrBranch, gitBranch))
-	if !cw.Empty() {
+	// no need to update marks if no new revisions were exported
+	if exportSize != 0 {
 		must(os.Rename(tmpBzrMarks.Name(), bzrMarks))
 		must(os.Rename(tmpGitMarks.Name(), gitMarks))
 	}
@@ -146,14 +127,4 @@ import will clone bzr branch from <url> and save it as <bzr branch> in
 the internal bzr repo. Then it will import the branch into git as <branch>.
 If <branch> isn't specified, it is assumed to be the same as <bzr branch>
 `)
-}
-
-func (w *countWriter) Write(b []byte) (int, error) {
-	n := len(b)
-	*w += countWriter(n)
-	return n, nil
-}
-
-func (w *countWriter) Empty() bool {
-	return *w == 0
 }

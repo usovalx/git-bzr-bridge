@@ -17,8 +17,8 @@ func prep() {
 }
 
 func TestNormalLevels(t *testing.T) {
-	for minLevel := DEBUG; minLevel <= NONE; minLevel++ {
-		for level := DEBUG; level < PANIC; level++ {
+	for minLevel := SPAM; minLevel <= NONE; minLevel++ {
+		for level := SPAM; level < PANIC; level++ {
 			prep()
 			l := New("testLogger")
 			MinLogLevel = minLevel
@@ -44,7 +44,7 @@ func TestNormalLevels(t *testing.T) {
 }
 
 func TestFailPanicLevels(t *testing.T) {
-	for minLevel := DEBUG; minLevel <= NONE; minLevel++ {
+	for minLevel := SPAM; minLevel <= NONE; minLevel++ {
 		prep()
 		level := PANIC
 		l := New("testLogger")

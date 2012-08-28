@@ -16,7 +16,8 @@ import (
 type logLevel int
 
 const (
-	DEBUG logLevel = iota
+	SPAM logLevel = iota
+	DEBUG
 	INFO
 	ERROR
 	PANIC
@@ -24,6 +25,7 @@ const (
 )
 
 var levels = [...]string{
+	"SPAM",
 	"DEBUG",
 	"INFO",
 	"ERROR",
@@ -50,6 +52,21 @@ type Logger struct {
 // Create new Logger with the given name
 func New(name string) *Logger {
 	return &Logger{name}
+}
+
+// Print SPAM level log line. Arguments are handled in the manner of fmt.Print
+func (l *Logger) Spam(v ...interface{}) {
+	l.log(SPAM, 2, fmt.Sprint(v...))
+}
+
+// Print SPAM level log line. Arguments are handled in the manner of fmt.Println
+func (l *Logger) Spamln(v ...interface{}) {
+	l.log(SPAM, 2, fmt.Sprintln(v...))
+}
+
+// Print SPAM level log line. Arguments are handled in the manner of fmt.Printf
+func (l *Logger) Spamf(format string, v ...interface{}) {
+	l.log(SPAM, 2, fmt.Sprintf(format, v...))
 }
 
 // Print DEBUG level log line. Arguments are handled in the manner of fmt.Print

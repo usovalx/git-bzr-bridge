@@ -4,7 +4,6 @@ import (
 	l "github.com/usovalx/git-bzr-bridge/log"
 
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -64,7 +63,7 @@ func InitRepo(path string) error {
 	return run(git("init", "--bare", path))
 }
 
-func Import(data io.Reader, inMarks, outMarks string) error {
+func Import(inMarks, outMarks string) *exec.Cmd {
 	flags := []string{
 		"fast-import", "--force",
 		"--import-marks=" + inMarks,
@@ -73,9 +72,8 @@ func Import(data io.Reader, inMarks, outMarks string) error {
 		flags = append(flags, "--quiet")
 	}
 	c := git(flags...)
-	c.Stdin = data
 	c.Stdout = os.Stdout
-	return run(c)
+	return c
 }
 
 func RenameBranch(from, to string) error {

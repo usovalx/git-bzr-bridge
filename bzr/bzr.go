@@ -4,7 +4,6 @@ import (
 	l "github.com/usovalx/git-bzr-bridge/log"
 
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -71,20 +70,19 @@ func Clone(url, path string) error {
 	return run(bzr("branch", "--no-tree", url, path))
 }
 
-func Export(path, gitName string, dataSink io.Writer, inMarks, outMarks string) error {
+func Export(path, gitBranch, inMarks, outMarks string) *exec.Cmd {
 	flags := []string{
 		"fast-export",
 		"--plain", "--no-tags",
 		"--import-marks", inMarks,
 		"--export-marks", outMarks,
-		"--git-branch", gitName,
+		"--git-branch", gitBranch,
 		path, "-"}
 	if l.MinLogLevel != l.DEBUG {
 		flags = append(flags, "--quiet")
 	}
 	c := bzr(flags...)
-	c.Stdout = dataSink
-	return run(c)
+	return c
 }
 
 func Tip(path string) (string, error) {

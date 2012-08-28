@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"os/exec"
 	"sort"
 	"strconv"
 	"strings"
@@ -65,6 +66,7 @@ func main() {
 	// global command-line flags
 	fs := flag.NewFlagSet("git-bzr-bridge", flag.ExitOnError)
 	var verbose = fs.Bool("v", false, "more verbose logging")
+	var debug = fs.Bool("d", false, "debug logging")
 	var help = fs.Bool("h", false, "show usage message and options")
 	var wd = fs.String("C", "", "change to this directory before doing anything else")
 	fs.Usage = func() { showUsage(fs) }
@@ -77,6 +79,9 @@ func main() {
 
 	if *verbose {
 		l.MinLogLevel = l.DEBUG
+	}
+	if *debug {
+		l.MinLogLevel = l.SPAM
 	}
 
 	if *wd != "" {
@@ -231,4 +236,71 @@ func loadMarks(path string) (*marks, error) {
 		}
 	}
 	panic("unreachable")
+}
+
+type CountReader struct {
+	read uint64
+	r io.ReadCloser
+}
+
+func (r *CountReader) Read(b []byte) (int, error) {
+	n, e := r.r.Read(b)
+	r.read += uint64(n)
+	return n, e
+}
+
+func (r *CountReader) Close() error {
+	return r.r.Close()
+}
+
+func (r *CountReader) NData() uint64 {
+	return r.read
+}
+
+func NewCountReader(r io.ReadCloser) *CountReader {
+	return &CountReader{0, r}
+}
+
+func RunPipe(src, dst *exec.Cmd) (uint64, error) {
+	if src.Stdout != nil {
+		return 0, fmt.Errorf("RunPipe: stdout already set on source")
+	}
+	if dst.Stdin != nil {
+		return 0, fmt.Errorf("RunPipe: stdin already set on dest")
+	}
+	log.Spamf("RunPipe: src=%q  dst=%q", src.Path, dst.Path)
+
+	p, err := src.StdoutPipe()
+	if err != nil {
+		return 0, err
+	}
+	cr := NewCountReader(p)
+	dst.Stdin = cr
+
+	// now run them both
+	log.Spam("RunPipe: starting src")
+	err = src.Start()
+	if err != nil {
+		log.Spam("RunPipe: failed")
+		return 0, err
+	}
+
+	log.Spam("RunPipe: starting dst")
+	err = dst.Start()
+	if err != nil {
+		log.Spam("RunPipe: failed")
+		p.Close()
+		log.Spam("RunPipe: waiting for src to die")
+		src.Wait()
+		return 0, err
+	}
+
+	log.Spam("RunPipe: waiting for src to finish")
+	err = src.Wait()
+	log.Spam("RunPipe: waiting for dst to finish")
+	err1 := dst.Wait()
+	if err != nil {
+		return cr.NData(), err
+	}
+	return cr.NData(), err1
 }
