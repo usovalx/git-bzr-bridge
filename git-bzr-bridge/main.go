@@ -53,6 +53,15 @@ type marks struct {
 }
 
 func main() {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Error(e)
+			os.Exit(1)
+		} else {
+			os.Exit(0)
+		}
+	}()
+
 	// global command-line flags
 	fs := flag.NewFlagSet("git-bzr-bridge", flag.ExitOnError)
 	var verbose = fs.Bool("v", false, "more verbose logging")
@@ -71,10 +80,7 @@ func main() {
 	}
 
 	if *wd != "" {
-		if err := os.Chdir(*wd); err != nil {
-			log.Error(err)
-			os.Exit(1)
-		}
+		must(os.Chdir(*wd))
 	}
 
 	rand.Seed(time.Now().UnixNano())
@@ -82,13 +88,6 @@ func main() {
 	// choose subcommand and run it
 	if fs.NArg() > 0 {
 		if cmd, ok := commands[fs.Arg(0)]; ok {
-			defer func() {
-				if e := recover(); e != nil {
-					os.Exit(1)
-				} else {
-					os.Exit(0)
-				}
-			}()
 			cmd.cmd(fs.Args()[1:])
 			os.Exit(0)
 		}
@@ -122,7 +121,6 @@ func showUsage(fs *flag.FlagSet) {
 
 func must(err error) {
 	if err != nil {
-		log.Error(err)
 		panic(err)
 	}
 }
