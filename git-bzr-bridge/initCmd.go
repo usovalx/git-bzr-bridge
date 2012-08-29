@@ -29,13 +29,16 @@ func initCmd(args []string) {
 
 	repoPath := fs.Arg(0)
 	log.Debug("Creating ", repoPath)
-	must(os.Mkdir(repoPath, 0777))
+	// it's ok if given folder already exists
+	// example: init .
+	os.Mkdir(repoPath, 0777)
 	must(os.Chdir(repoPath))
 
-	log.Debug("Initializing git repo")
-	must(git.InitRepo("."))
+        // first try to initialize bzr repo, so that it will fail early in case of any issues
 	log.Debug("Initializing bzr repo")
 	must(bzr.InitRepo(bzrRepo))
+	log.Debug("Initializing git repo")
+	must(git.InitRepo("."))
 	log.Debug("Creating branch config")
 	must(ioutil.WriteFile(branchConfigName, []byte("[]"), 0666))
 	log.Debug("Creating marks files")
