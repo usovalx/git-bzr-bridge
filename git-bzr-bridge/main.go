@@ -244,7 +244,7 @@ func loadMarks(path string) (*marks, error) {
 
 type CountReader struct {
 	read uint64
-	r io.ReadCloser
+	r    io.ReadCloser
 }
 
 func (r *CountReader) Read(b []byte) (int, error) {

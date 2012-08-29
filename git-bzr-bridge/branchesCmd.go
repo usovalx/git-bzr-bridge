@@ -2,10 +2,10 @@ package main
 
 import (
 	"flag"
-	"os"
 	"fmt"
+	"os"
 	"sort"
-	)
+)
 
 func branchesCmd(args []string) {
 	// command-line flags
@@ -30,7 +30,7 @@ func branchesCmd(args []string) {
 
 	branches := config.branches
 	sort.Sort(byGitName{branches})
-	
+
 	if !*verbose {
 		for _, v := range branches {
 			fmt.Println(v.Git)
@@ -58,8 +58,8 @@ it will also show Bzr urls and names of the (hidden) bzr branches.
 `)
 }
 
-type byGitName struct {branchList}
+type byGitName struct{ branchList }
 
-func (x byGitName) Less(i,j int) bool {return x.branchList[i].Git < x.branchList[j].Git}
-func (x byGitName) Len() int { return len(x.branchList) }
-func (x byGitName) Swap(i,j int) { x.branchList[i], x.branchList[j] = x.branchList[j], x.branchList[i] }
+func (x byGitName) Less(i, j int) bool { return x.branchList[i].Git < x.branchList[j].Git }
+func (x byGitName) Len() int           { return len(x.branchList) }
+func (x byGitName) Swap(i, j int)      { x.branchList[i], x.branchList[j] = x.branchList[j], x.branchList[i] }

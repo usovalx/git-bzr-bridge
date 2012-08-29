@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
-	"os"
 	"fmt"
-	)
+	"os"
+)
 
 func updateCmd(args []string) {
 	// command-line flags
@@ -23,6 +23,7 @@ func updateCmd(args []string) {
 		fs.Usage()
 		os.Exit(2)
 	}
+
 }
 
 func updateUsage(fs *flag.FlagSet) {
