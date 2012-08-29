@@ -34,7 +34,7 @@ func initCmd(args []string) {
 	os.Mkdir(repoPath, 0777)
 	must(os.Chdir(repoPath))
 
-        // first try to initialize bzr repo, so that it will fail early in case of any issues
+	// first try to initialize bzr repo, so that it will fail early in case of any issues
 	log.Debug("Initializing bzr repo")
 	must(bzr.InitRepo(bzrRepo))
 	log.Debug("Initializing git repo")

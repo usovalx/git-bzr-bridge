@@ -32,6 +32,7 @@ func importCmd(args []string) {
 
 	// FIXME: check we are in the correct directory
 
+	// construct correct bzr & git branch names
 	url := fs.Arg(0)
 	bzrBranch := filepath.FromSlash(path.Join(bzrRepo, fs.Arg(1)))
 	gitBranch := *b
@@ -39,16 +40,36 @@ func importCmd(args []string) {
 		gitBranch = fs.Arg(1)
 	}
 
-	tmpGitBranch := tempBranchName()
-	tmpBzrBranch := filepath.FromSlash(path.Join(bzrRepo, tmpGitBranch))
-
-	// load branch config and check that resulting branch names don't clash
+	// load branch config and check that new branch names don't clash
 	c, err := loadBranchConfig()
 	must(err)
 	if c.byBzrName[bzrBranch] != nil || c.byGitName[gitBranch] != nil {
 		log.Error("Requested branch names clash with existing ones")
 		os.Exit(1)
 	}
+
+	cloneAndExportBzrImportGit(url,
+		func(marksUpdated bool, tmpGitMarks, tmpBzrMarks, tmpGitBranch, tmpBzrBranch string) {
+			// finilize transaction
+			// correct ordering of actions is important here
+			// while we can live with stale temporary branches and/or files
+			// and easily clean them up manually later it is extremely
+			// important that we keep marks files in sync.
+			must(os.MkdirAll(filepath.Dir(bzrBranch), 0777))
+			must(os.Rename(tmpBzrBranch, bzrBranch))
+			must(git.RenameBranch(tmpGitBranch, gitBranch))
+			must(addBranchToConfig(url, bzrBranch, gitBranch))
+			// no need to update marks if no new revisions were exported
+			if marksUpdated {
+				must(os.Rename(tmpBzrMarks, bzrMarks))
+				must(os.Rename(tmpGitMarks, gitMarks))
+			}
+		})
+}
+
+func cloneAndExportBzrImportGit(url string, finalizer func(marksUpdated bool, tmpGitMarks, tmpBzrMarks, tmpGitBranch, tmpBzrBranch string)) {
+	tmpGitBranch := tempBranchName()
+	tmpBzrBranch := filepath.FromSlash(path.Join(bzrRepo, tmpGitBranch))
 
 	// FIXME: use locks
 
@@ -101,19 +122,7 @@ func importCmd(args []string) {
 	}
 
 	log.Info("Finalising import")
-	// correct ordering of actions is important here
-	// while we can live with stale temporary branches and/or files
-	// and easily clean them up manually later it is extremely
-	// important that we keep marks files in sync.
-	must(os.MkdirAll(filepath.Dir(bzrBranch), 0777))
-	must(os.Rename(tmpBzrBranch, bzrBranch))
-	must(git.RenameBranch(tmpGitBranch, gitBranch))
-	must(addBranchToConfig(url, bzrBranch, gitBranch))
-	// no need to update marks if no new revisions were exported
-	if exportSize != 0 {
-		must(os.Rename(tmpBzrMarks.Name(), bzrMarks))
-		must(os.Rename(tmpGitMarks.Name(), gitMarks))
-	}
+	finalizer((exportSize != 0), tmpGitMarks.Name(), tmpBzrMarks.Name(), tmpGitBranch, tmpBzrBranch)
 }
 
 func importUsage(fs *flag.FlagSet) {

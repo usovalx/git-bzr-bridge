@@ -98,6 +98,10 @@ func Tip(path string) (string, error) {
 	panic("unreachable")
 }
 
+func PullOverwrite(from, to string) error {
+	return run(bzr("pull", "--overwrite", "-d", to, from))
+}
+
 // Prepare exec.Cmd to run bzr with specified arguments
 func bzr(args ...string) *exec.Cmd {
 	a := append(conf.BzrCommand, args...)
