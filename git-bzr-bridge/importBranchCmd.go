@@ -48,7 +48,9 @@ func importCmd(args []string) {
 		os.Exit(1)
 	}
 
-	cloneAndExportBzrImportGit(url,
+	cloneAndExportBzrImportGit(
+		url,
+		func(_ string) bool { return true },
 		func(marksUpdated bool, tmpGitMarks, tmpBzrMarks, tmpGitBranch, tmpBzrBranch string) {
 			// finilize transaction
 			// correct ordering of actions is important here
@@ -67,7 +69,10 @@ func importCmd(args []string) {
 		})
 }
 
-func cloneAndExportBzrImportGit(url string, finalizer func(marksUpdated bool, tmpGitMarks, tmpBzrMarks, tmpGitBranch, tmpBzrBranch string)) {
+func cloneAndExportBzrImportGit(
+	url string,
+	shouldExport func(tmpBzrBranch string) bool,
+	finalizer func(marksUpdated bool, tmpGitMarks, tmpBzrMarks, tmpGitBranch, tmpBzrBranch string)) {
 	tmpGitBranch := tempBranchName()
 	tmpBzrBranch := filepath.FromSlash(path.Join(bzrRepo, tmpGitBranch))
 
@@ -86,6 +91,10 @@ func cloneAndExportBzrImportGit(url string, finalizer func(marksUpdated bool, tm
 	log.Info("Cloning bzr branch")
 	defer os.RemoveAll(tmpBzrBranch)
 	must(bzr.Clone(url, tmpBzrBranch))
+
+	if !shouldExport(tmpBzrBranch) {
+		return
+	}
 
 	log.Info("Exporting data from bzr")
 	defer func() {

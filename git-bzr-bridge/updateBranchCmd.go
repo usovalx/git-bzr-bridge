@@ -87,7 +87,16 @@ func doUpdateBranch(gitBranch, bzrBranch, url string) (err error) {
 		}
 	}()
 
-	cloneAndExportBzrImportGit(url,
+	tip, err := bzr.Tip(bzrBranch)
+	must(err)
+
+	cloneAndExportBzrImportGit(
+		url,
+		func(tmpBzrBranch string) bool {
+			newTip, err := bzr.Tip(tmpBzrBranch)
+			must(err)
+			return newTip != tip
+		},
 		func(marksUpdated bool, tmpGitMarks, tmpBzrMarks, tmpGitBranch, tmpBzrBranch string) {
 			must(bzr.PullOverwrite(tmpBzrBranch, bzrBranch))
 			must(git.RenameBranch(tmpGitBranch, gitBranch))
