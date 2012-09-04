@@ -88,6 +88,10 @@ func NewBranch(name, rev string) error {
 	return run(git("branch", name, rev))
 }
 
+func LeftRevList(old, new string) (string, err) {
+	return git("rev-list", "--left-only", old+"..."+new).Output()
+}
+
 // Prepare exec.Cmd to run git with specified arguments
 func git(args ...string) *exec.Cmd {
 	a := append(conf.GitCommand, args...)

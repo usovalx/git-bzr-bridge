@@ -72,7 +72,8 @@ func importCmd(args []string) {
 func cloneAndExportBzrImportGit(
 	url string,
 	shouldExport func(tmpBzrBranch string) bool,
-	finalizer func(marksUpdated bool, tmpGitMarks, tmpBzrMarks, tmpGitBranch, tmpBzrBranch string)) {
+	finalizer func(marksUpdated bool, tmpGitMarks, tmpBzrMarks, tmpGitBranch, tmpBzrBranch string)) bool {
+
 	tmpGitBranch := tempBranchName()
 	tmpBzrBranch := filepath.FromSlash(path.Join(bzrRepo, tmpGitBranch))
 
@@ -93,7 +94,7 @@ func cloneAndExportBzrImportGit(
 	must(bzr.Clone(url, tmpBzrBranch))
 
 	if !shouldExport(tmpBzrBranch) {
-		return
+		return false
 	}
 
 	log.Info("Exporting data from bzr")
@@ -132,6 +133,7 @@ func cloneAndExportBzrImportGit(
 
 	log.Info("Finalising import")
 	finalizer((exportSize != 0), tmpGitMarks.Name(), tmpBzrMarks.Name(), tmpGitBranch, tmpBzrBranch)
+	return true
 }
 
 func importUsage(fs *flag.FlagSet) {

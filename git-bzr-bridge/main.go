@@ -38,6 +38,7 @@ var commands = map[string]commandInfo{
 	"import":       {importCmd, "import new bzr branch"},
 	"test-install": {testInstallCmd, "basic check of the setup"},
 	"update":       {updateCmd, "pull new revisions from bzr and import them into git"},
+	"update-hook":  {updateHookCmd, "accept new revisions from git and push them into bzr"},
 }
 
 type branchInfo struct {
