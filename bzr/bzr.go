@@ -67,7 +67,11 @@ func InitRepo(path string) error {
 }
 
 func Clone(url, path string) error {
-	return run(bzr("branch", "--no-tree", url, path))
+	flags := []string{"branch", "--no-tree"}
+	if l.MinLogLevel >= l.DEBUG {
+		flags = append(flags, "--quiet")
+	}
+	return run(bzr(append(flags, url, path)...))
 }
 
 func Export(path, gitBranch, inMarks, outMarks string) *exec.Cmd {
