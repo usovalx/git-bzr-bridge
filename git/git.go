@@ -68,7 +68,7 @@ func Import(inMarks, outMarks string) *exec.Cmd {
 		"fast-import", "--force",
 		"--import-marks=" + inMarks,
 		"--export-marks=" + outMarks}
-	if l.MinLogLevel != l.DEBUG {
+	if l.MinLogLevel >= l.DEBUG {
 		flags = append(flags, "--quiet")
 	}
 	c := git(flags...)

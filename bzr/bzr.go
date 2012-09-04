@@ -82,7 +82,7 @@ func Export(path, gitBranch, inMarks, outMarks string) *exec.Cmd {
 		"--export-marks", outMarks,
 		"--git-branch", gitBranch,
 		path, "-"}
-	if l.MinLogLevel != l.DEBUG {
+	if l.MinLogLevel >= l.DEBUG {
 		flags = append(flags, "--quiet")
 	}
 	c := bzr(flags...)
