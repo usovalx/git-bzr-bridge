@@ -11,7 +11,7 @@ import (
 
 func updateCmd(args []string) {
 	// command-line flags
-	fs := flag.NewFlagSet("import", flag.ExitOnError)
+	fs := flag.NewFlagSet("update", flag.ExitOnError)
 	help := fs.Bool("h", false, "show usage message")
 	updateAll := fs.Bool("a", false, "update all branches")
 	fs.Usage = func() { updateUsage(fs) }
