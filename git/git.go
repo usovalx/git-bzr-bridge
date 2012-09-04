@@ -88,7 +88,7 @@ func NewBranch(name, rev string) error {
 	return run(git("branch", name, rev))
 }
 
-func LeftRevList(old, new string) (string, err) {
+func LeftRevList(old, new string) ([]byte, error) {
 	return git("rev-list", "--left-only", old+"..."+new).Output()
 }
 

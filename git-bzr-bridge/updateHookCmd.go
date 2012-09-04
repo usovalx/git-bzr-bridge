@@ -102,5 +102,5 @@ func checkFastForward(old, new string) bool {
 	r, err := git.LeftRevList(old, new)
 	must(err)
 
-	return r == ""
+	return len(r) == 0
 }
