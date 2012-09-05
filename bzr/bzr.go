@@ -74,6 +74,20 @@ func Clone(url, path string) error {
 	return run(bzr(append(flags, url, path)...))
 }
 
+func Import(repoDir, inMarks, outMarks string) *exec.Cmd {
+	flags := []string{
+		"fast-import",
+		"--import-marks", inMarks,
+		"--export-marks", outMarks,
+		"-", repoDir}
+	if l.MinLogLevel < l.DEBUG {
+		flags = append(flags, "--quiet")
+	}
+	c := bzr(flags...)
+	c.Stdout = os.Stdout
+	return c
+}
+
 func Export(path, gitBranch, inMarks, outMarks string) *exec.Cmd {
 	flags := []string{
 		"fast-export",
@@ -103,6 +117,18 @@ func Tip(path string) (string, error) {
 
 func PullOverwrite(from, to string) error {
 	return run(bzr("pull", "--overwrite", "-d", to, from))
+}
+
+func NewBranch(branch, rev string) error {
+	err := run(bzr("init", "--create-prefix", branch))
+	if err != nil {
+		return err
+	}
+	return run(bzr("pull", "-d", branch, "-r", "revid:"+rev, branch))
+}
+
+func Push(branch, url string) error {
+	return run(bzr("push", "-d", branch, url))
 }
 
 // Prepare exec.Cmd to run bzr with specified arguments

@@ -76,6 +76,15 @@ func Import(inMarks, outMarks string) *exec.Cmd {
 	return c
 }
 
+func Export(branch, inMarks, outMarks string) *exec.Cmd {
+	flags := []string{
+		"fast-export", "-M", "-C",
+		"--import-marks=" + inMarks,
+		"--export-marks=" + outMarks,
+		branch}
+	return git(flags...)
+}
+
 func RenameBranch(from, to string) error {
 	return run(git("branch", "-M", from, to))
 }

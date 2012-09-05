@@ -6,7 +6,10 @@ import (
 
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -84,7 +87,8 @@ func updateHookCmd(args []string) {
 		os.Exit(1)
 	}
 
-	// TODO: export git -> import bzr & push it
+	// export git -> import bzr & push it
+	exportGitImportBzrAndPush(fs.Arg(2), gitBranch, bzrBranch, url)
 }
 
 func updateHookUsage(fs *flag.FlagSet) {
@@ -103,4 +107,61 @@ func checkFastForward(old, new string) bool {
 	must(err)
 
 	return len(r) == 0
+}
+
+func exportGitImportBzrAndPush(
+	gitRev, gitBranch, bzrBranch, url string) {
+
+	// FIXME: use locks
+
+	tmpGitBranch := "__git_import/" + gitBranch
+	tmpBzrBranch := filepath.FromSlash(path.Join(bzrRepo, tmpGitBranch))
+
+	// create all temp files we will need later
+	tmpBzrMarks, err := ioutil.TempFile(tmpDir, "bzr_marks")
+	must(err)
+	defer os.Remove(tmpBzrMarks.Name())
+	tmpBzrMarks.Close()
+	tmpGitMarks, err := ioutil.TempFile(tmpDir, "git_marks")
+	must(err)
+	defer os.Remove(tmpGitMarks.Name())
+	tmpGitMarks.Close()
+
+	// create a temp branch in git
+	must(git.NewBranch(tmpGitBranch, gitRev))
+	defer git.RemoveBranch(tmpGitBranch)
+
+	// export data into bzr
+	log.Info("Exporting data from git")
+	defer os.RemoveAll(tmpBzrBranch)
+	exportSize, err := RunPipe(
+		git.Export(tmpGitBranch, gitMarks, tmpGitMarks.Name()),
+		bzr.Import(bzrRepo, bzrMarks, tmpBzrMarks.Name()))
+
+	if exportSize == 0 {
+		log.Info("Empty export. Creating bzr branch using marks")
+		b, err := loadMarks(bzrMarks)
+		must(err)
+		g, err := loadMarks(gitMarks)
+		must(err)
+		mark, ok := g.byRev[gitRev]
+		if !ok {
+			log.Panicf("Can't find revision %q in the git marks file", gitRev)
+		}
+		brev, ok := b.byMark[mark]
+		if !ok {
+			log.Panicf("Can't find mark %d in bzr marks file", mark)
+		}
+		must(bzr.NewBranch(tmpBzrBranch, brev))
+	}
+
+	log.Info("Pushing into bzr")
+	must(bzr.Push(tmpBzrBranch, url))
+
+	log.Info("Finalizing")
+	must(bzr.PullOverwrite(tmpBzrBranch, bzrBranch))
+	if exportSize != 0 {
+		must(os.Rename(tmpBzrMarks.Name(), bzrMarks))
+		must(os.Rename(tmpGitMarks.Name(), gitMarks))
+	}
 }
