@@ -1,5 +1,5 @@
 *.swp
 project.sublime-workspace
-git-bzr-bridge/git-bzr-bridge
-git-bzr-bridge/foo
+git-bzr-bridge
+foo
 project.sublime-project
