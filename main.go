@@ -266,7 +266,7 @@ func NewCountReader(r io.ReadCloser) *CountReader {
 	return &CountReader{0, r}
 }
 
-func RunPipe(src, dst *exec.Cmd) (uint64, error) {
+func RunPipe(src, dst *exec.Cmd) (int64, error) {
 	if src.Stdout != nil {
 		return 0, fmt.Errorf("RunPipe: stdout already set on source")
 	}
@@ -275,37 +275,58 @@ func RunPipe(src, dst *exec.Cmd) (uint64, error) {
 	}
 	log.Spamf("RunPipe: src=%q  dst=%q", src.Path, dst.Path)
 
-	p, err := src.StdoutPipe()
+	// now we need to connect them together
+	// because we want to count the data as it passes through
+	// we need separate pipe for each one
+	sr, sw, err := os.Pipe()
 	if err != nil {
 		return 0, err
 	}
-	cr := NewCountReader(p)
-	dst.Stdin = cr
-
-	// now run them both
-	log.Spam("RunPipe: starting src")
-	err = src.Start()
+	dr, dw, err := os.Pipe()
 	if err != nil {
-		log.Spam("RunPipe: failed")
 		return 0, err
 	}
 
+	// set up pipes and run commands
 	log.Spam("RunPipe: starting dst")
+	dst.Stdin = dr
 	err = dst.Start()
+	dr.Close()
 	if err != nil {
-		log.Spam("RunPipe: failed")
-		p.Close()
-		log.Spam("RunPipe: waiting for src to die")
-		src.Wait()
+		log.Spam("RunPipe: failed to start dst: ", err)
 		return 0, err
 	}
 
-	log.Spam("RunPipe: waiting for src to finish")
-	err = src.Wait()
-	log.Spam("RunPipe: waiting for dst to finish")
-	err1 := dst.Wait()
+	log.Spam("RunPipe: starting src")
+	src.Stdout = sw
+	err = src.Start()
+	sw.Close()
 	if err != nil {
-		return cr.NData(), err
+		log.Spam("RunPipe: failed to start src: ", err)
+		log.Spam("RunPipe: waiting for dst to die")
+		_, _ = sr.Close(), dw.Close()
+		dst.Wait()
+		return 0, err
 	}
-	return cr.NData(), err1
+
+	log.Spam("RunPipe: copying data")
+	copied, copyErr := io.Copy(dw, sr)
+	if copyErr == io.EOF {
+		copyErr = nil // EOF isn't really an error in this case
+	}
+	log.Spamf("RunPipe: copied %d bytes, err: %v", copied, copyErr)
+
+	// close all pipes and let everything die
+	log.Spam("RunPipe: waiting for all children to die")
+	closeErr1, closeErr2 := sr.Close(), dw.Close()
+	waitErr1, waitErr2 := src.Wait(), dst.Wait()
+
+	// and finally, figure out resulting error code
+	errs := []error{waitErr1, waitErr2, copyErr, closeErr1, closeErr2}
+	for _, e := range errs {
+		if e != nil {
+			return copied, e
+		}
+	}
+	return copied, nil
 }
