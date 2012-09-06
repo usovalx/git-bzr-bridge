@@ -275,42 +275,34 @@ func RunPipe(src, dst *exec.Cmd) (int64, error) {
 	}
 	log.Spamf("RunPipe: src=%q  dst=%q", src.Path, dst.Path)
 
-	// now we need to connect them together
-	// because we want to count the data as it passes through
-	// we need separate pipe for each one
-	sr, sw, err := os.Pipe()
+	pr, err := src.StdoutPipe()
 	if err != nil {
 		return 0, err
 	}
-	dr, dw, err := os.Pipe()
+	pw, err := dst.StdinPipe()
 	if err != nil {
-		return 0, err
-	}
-
-	// set up pipes and run commands
-	log.Spam("RunPipe: starting dst")
-	dst.Stdin = dr
-	err = dst.Start()
-	dr.Close()
-	if err != nil {
-		log.Spam("RunPipe: failed to start dst: ", err)
 		return 0, err
 	}
 
 	log.Spam("RunPipe: starting src")
-	src.Stdout = sw
 	err = src.Start()
-	sw.Close()
 	if err != nil {
-		log.Spam("RunPipe: failed to start src: ", err)
-		log.Spam("RunPipe: waiting for dst to die")
-		_, _ = sr.Close(), dw.Close()
-		dst.Wait()
+		log.Spam("RunPipe: error starting src: ", err)
+		return 0, err
+	}
+
+	log.Spam("RunPipe: starting dst")
+	err = dst.Start()
+	if err != nil {
+		log.Spam("RunPipe: error starting dst: ", err)
+		log.Spam("RunPipe: waiting for src to die")
+		pr.Close()
+		src.Wait()
 		return 0, err
 	}
 
 	log.Spam("RunPipe: copying data")
-	copied, copyErr := io.Copy(dw, sr)
+	copied, copyErr := io.Copy(pw, pr)
 	if copyErr == io.EOF {
 		copyErr = nil // EOF isn't really an error in this case
 	}
@@ -318,11 +310,11 @@ func RunPipe(src, dst *exec.Cmd) (int64, error) {
 
 	// close all pipes and let everything die
 	log.Spam("RunPipe: waiting for all children to die")
-	closeErr1, closeErr2 := sr.Close(), dw.Close()
+	closeErr1, closeErr2 := pr.Close(), pw.Close()
 	waitErr1, waitErr2 := src.Wait(), dst.Wait()
 
 	// and finally, figure out resulting error code
-	errs := []error{waitErr1, waitErr2, copyErr, closeErr1, closeErr2}
+	errs := []error{copyErr, waitErr1, waitErr2, closeErr1, closeErr2}
 	for _, e := range errs {
 		if e != nil {
 			return copied, e
